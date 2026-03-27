@@ -12,7 +12,6 @@ This makes each rule independently testable without database fixtures.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
 
 import redis.asyncio as aioredis
 
@@ -27,13 +26,13 @@ class RuleContext:
         transaction: The transaction being evaluated.
         redis: Optional async Redis client. Rules that do not require Redis
                (e.g. amount threshold) can safely ignore this field.
-        current_hour: Hour of the day (0–23) at evaluation time. Injected
+        current_hour: Hour of the day (0-23) at evaluation time. Injected
                       rather than read from ``datetime.now()`` to keep rules
                       deterministic in tests.
     """
 
     transaction: TransactionSubmit
-    redis: Optional[aioredis.Redis]
+    redis: aioredis.Redis | None
     current_hour: int
 
 
@@ -63,7 +62,7 @@ class FraudRule(ABC):
                  an optional Redis client and the current hour of the day.
 
         Returns:
-            A :class:`RuleResult` with the computed score (0–100),
+            A :class:`RuleResult` with the computed score (0-100),
             a triggered flag, and a human-readable reason string.
         """
         ...

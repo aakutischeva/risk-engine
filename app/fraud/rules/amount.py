@@ -13,8 +13,8 @@ class HighAmountRule(FraudRule):
     threshold.  Transactions below the high-risk threshold score 0.
 
     Example thresholds (configurable via environment):
-    - R$ 0      – R$ 4 999.99 → score 0   (no risk from amount alone)
-    - R$ 5 000  – R$ 19 999   → score 30–79 (proportional)
+    - R$ 0      - R$ 4 999.99 -> score 0   (no risk from amount alone)
+    - R$ 5 000  - R$ 19 999   -> score 30-79 (proportional)
     - R$ 20 000+             → score 100
     """
 
@@ -29,10 +29,7 @@ class HighAmountRule(FraudRule):
         if amount >= critical:
             score = 100.0
             triggered = True
-            reason = (
-                f"Amount R$ {amount:,.2f} exceeds critical threshold "
-                f"R$ {critical:,.2f}."
-            )
+            reason = f"Amount R$ {amount:,.2f} exceeds critical threshold R$ {critical:,.2f}."
         elif amount >= high:
             # Linear interpolation between high and critical thresholds
             ratio = (amount - high) / (critical - high)

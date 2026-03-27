@@ -1,13 +1,13 @@
 """API route for real-time risk statistics dashboard."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.enums import AlertStatus, RiskLevel
+from app.domain.enums import AlertStatus
 from app.infra.database.connection import get_session
 from app.infra.database.models import AlertRecord, TransactionRecord
 
@@ -64,27 +64,22 @@ async def get_stats(session: AsyncSession = Depends(get_session)) -> DashboardSt
 
     # Risk level distribution
     dist_result = await session.execute(
-        select(TransactionRecord.risk_level, func.count().label("cnt"))
-        .group_by(TransactionRecord.risk_level)
+        select(TransactionRecord.risk_level, func.count().label("cnt")).group_by(
+            TransactionRecord.risk_level
+        )
     )
     distribution = RiskDistribution()
     for row in dist_result:
         setattr(distribution, row.risk_level, row.cnt)
 
     # Alert counts
-    alert_total = await session.execute(
-        select(func.count(AlertRecord.alert_id))
-    )
+    alert_total = await session.execute(select(func.count(AlertRecord.alert_id)))
     open_alerts = await session.execute(
-        select(func.count(AlertRecord.alert_id)).where(
-            AlertRecord.status == AlertStatus.OPEN.value
-        )
+        select(func.count(AlertRecord.alert_id)).where(AlertRecord.status == AlertStatus.OPEN.value)
     )
 
     # Highest fraud score today
-    today_start = datetime.now(timezone.utc).replace(
-        hour=0, minute=0, second=0, microsecond=0, tzinfo=None
-    )
+    today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
     highest_today_result = await session.execute(
         select(func.coalesce(func.max(TransactionRecord.fraud_score), 0.0)).where(
             TransactionRecord.created_at >= today_start
@@ -98,5 +93,5 @@ async def get_stats(session: AsyncSession = Depends(get_session)) -> DashboardSt
         risk_distribution=distribution,
         avg_fraud_score=avg_score,
         highest_score_today=round(float(highest_today_result.scalar() or 0.0), 2),
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
     )

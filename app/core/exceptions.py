@@ -41,6 +41,7 @@ class InvalidTransactionError(RiskEngineError):
 
 # ── HTTP exception factories ──────────────────────────────────────────────────
 
+
 def http_not_found(detail: str) -> HTTPException:
     return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
 
@@ -50,6 +51,4 @@ def http_conflict(detail: str) -> HTTPException:
 
 
 def http_unprocessable(detail: str) -> HTTPException:
-    return HTTPException(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail
-    )
+    return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail)

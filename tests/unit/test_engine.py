@@ -7,8 +7,8 @@ from app.domain.schemas.transaction import RuleResult, TransactionSubmit
 from app.fraud.engine import FraudEngine, _classify, _weighted_average
 from app.fraud.rules.base import FraudRule, RuleContext
 
-
 # ─── Helpers ──────────────────────────────────────────────────────────────────
+
 
 def _make_transaction(**kwargs) -> TransactionSubmit:
     defaults = {
@@ -51,6 +51,7 @@ class _FailingRule(FraudRule):
 
 # ─── _classify ────────────────────────────────────────────────────────────────
 
+
 class TestClassify:
     def test_score_below_30_is_low(self):
         assert _classify(0.0) == RiskLevel.LOW
@@ -70,6 +71,7 @@ class TestClassify:
 
 
 # ─── _weighted_average ────────────────────────────────────────────────────────
+
 
 class TestWeightedAverage:
     def test_equal_weights_produces_arithmetic_mean(self):
@@ -96,6 +98,7 @@ class TestWeightedAverage:
 
 
 # ─── FraudEngine ──────────────────────────────────────────────────────────────
+
 
 class TestFraudEngine:
     @pytest.mark.asyncio

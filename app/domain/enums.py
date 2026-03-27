@@ -1,9 +1,9 @@
 """Domain enumerations shared across all application layers."""
 
-from enum import Enum
+from enum import StrEnum
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     """Qualitative risk classification assigned to a transaction.
 
     The thresholds mapping fraud scores to risk levels are:
@@ -20,7 +20,7 @@ class RiskLevel(str, Enum):
     CRITICAL = "CRITICAL"
 
 
-class TransactionType(str, Enum):
+class TransactionType(StrEnum):
     """Payment method used for the transaction."""
 
     PIX = "PIX"
@@ -30,7 +30,7 @@ class TransactionType(str, Enum):
     CARD = "CARD"
 
 
-class AlertStatus(str, Enum):
+class AlertStatus(StrEnum):
     """Lifecycle status of a fraud alert."""
 
     OPEN = "OPEN"

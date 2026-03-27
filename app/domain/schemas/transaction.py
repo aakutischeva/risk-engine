@@ -1,8 +1,6 @@
 """Pydantic schemas for transaction request/response contracts."""
 
 from datetime import datetime
-from typing import Optional
-from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -48,7 +46,7 @@ class TransactionSubmit(BaseModel):
         default=TransactionType.PIX,
         description="Payment method used for this transaction.",
     )
-    metadata: Optional[dict] = Field(
+    metadata: dict | None = Field(
         default=None,
         description="Optional free-form metadata stored alongside the transaction.",
     )
@@ -73,7 +71,7 @@ class RuleResult(BaseModel):
 class RiskAssessment(BaseModel):
     """Full fraud assessment result attached to a scored transaction."""
 
-    fraud_score: float = Field(..., ge=0, le=100, description="Weighted composite score (0–100).")
+    fraud_score: float = Field(..., ge=0, le=100, description="Weighted composite score (0-100).")
     risk_level: RiskLevel
     rules_evaluated: list[RuleResult]
     scored_at: datetime

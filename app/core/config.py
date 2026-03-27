@@ -38,9 +38,9 @@ class Settings(BaseSettings):
 
     # ── Fraud Engine ──────────────────────────────────────────────────────────
     # Sliding-window velocity check: max transactions per payer in the window
-    VELOCITY_WINDOW_SECONDS: int = 300          # 5-minute window
-    VELOCITY_MAX_TRANSACTIONS: int = 10         # max 10 tx in 5 min → HIGH risk
-    VELOCITY_CRITICAL_TRANSACTIONS: int = 20    # 20+ tx in 5 min → CRITICAL
+    VELOCITY_WINDOW_SECONDS: int = 300  # 5-minute window
+    VELOCITY_MAX_TRANSACTIONS: int = 10  # max 10 tx in 5 min → HIGH risk
+    VELOCITY_CRITICAL_TRANSACTIONS: int = 20  # 20+ tx in 5 min → CRITICAL
 
     # Amount thresholds (BRL)
     AMOUNT_HIGH_RISK_THRESHOLD: float = 5_000.00
@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     ALERT_WEBHOOK_SECRET: str = ""
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     """Return the singleton Settings instance, loaded once and cached.
 

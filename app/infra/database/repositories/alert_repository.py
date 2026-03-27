@@ -1,8 +1,7 @@
 """Repository for AlertRecord persistence operations."""
 
 import uuid
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +17,7 @@ class AlertRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get_by_id(self, alert_id: str) -> Optional[AlertRecord]:
+    async def get_by_id(self, alert_id: str) -> AlertRecord | None:
         """Return an alert record by its primary key, or None.
 
         Args:
@@ -63,7 +62,7 @@ class AlertRepository:
         self,
         alert: AlertRecord,
         status: AlertStatus,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> AlertRecord:
         """Transition an alert to a new lifecycle status.
 
@@ -82,14 +81,14 @@ class AlertRepository:
         if notes is not None:
             alert.notes = notes
         if status in (AlertStatus.RESOLVED, AlertStatus.FALSE_POSITIVE):
-            alert.resolved_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            alert.resolved_at = datetime.now(UTC).replace(tzinfo=None)
         await self._session.flush()
         return alert
 
     async def list_alerts(
         self,
-        status: Optional[AlertStatus] = None,
-        risk_level: Optional[RiskLevel] = None,
+        status: AlertStatus | None = None,
+        risk_level: RiskLevel | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[AlertRecord], int]:

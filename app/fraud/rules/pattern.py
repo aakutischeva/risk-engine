@@ -37,9 +37,8 @@ class RoundAmountRule(FraudRule):
     async def evaluate(self, ctx: RuleContext) -> RuleResult:
         amount = ctx.transaction.amount
 
-        is_round = (
-            amount >= self._MIN_SUSPICIOUS_AMOUNT
-            and math.isclose(amount % self._ROUND_MULTIPLE, 0.0, abs_tol=0.01)
+        is_round = amount >= self._MIN_SUSPICIOUS_AMOUNT and math.isclose(
+            amount % self._ROUND_MULTIPLE, 0.0, abs_tol=0.01
         )
 
         if is_round:

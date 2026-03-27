@@ -1,8 +1,5 @@
 """Repository for TransactionRecord persistence operations."""
 
-from datetime import datetime
-from typing import Optional
-
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +18,7 @@ class TransactionRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get_by_id(self, transaction_id: str) -> Optional[TransactionRecord]:
+    async def get_by_id(self, transaction_id: str) -> TransactionRecord | None:
         """Return a transaction record by its primary key, or None.
 
         Args:
@@ -31,9 +28,7 @@ class TransactionRepository:
             The ORM record if it exists, otherwise None.
         """
         result = await self._session.execute(
-            select(TransactionRecord).where(
-                TransactionRecord.transaction_id == transaction_id
-            )
+            select(TransactionRecord).where(TransactionRecord.transaction_id == transaction_id)
         )
         return result.scalar_one_or_none()
 
@@ -49,9 +44,7 @@ class TransactionRepository:
             True if the transaction already exists, False otherwise.
         """
         result = await self._session.execute(
-            select(func.count()).where(
-                TransactionRecord.transaction_id == transaction_id
-            )
+            select(func.count()).where(TransactionRecord.transaction_id == transaction_id)
         )
         return (result.scalar() or 0) > 0
 
@@ -86,8 +79,8 @@ class TransactionRepository:
 
     async def list_transactions(
         self,
-        risk_level: Optional[RiskLevel] = None,
-        payer_key: Optional[str] = None,
+        risk_level: RiskLevel | None = None,
+        payer_key: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> tuple[list[TransactionRecord], int]:
@@ -107,9 +100,7 @@ class TransactionRepository:
 
         if risk_level is not None:
             query = query.where(TransactionRecord.risk_level == risk_level.value)
-            count_query = count_query.where(
-                TransactionRecord.risk_level == risk_level.value
-            )
+            count_query = count_query.where(TransactionRecord.risk_level == risk_level.value)
         if payer_key is not None:
             query = query.where(TransactionRecord.payer_key == payer_key)
             count_query = count_query.where(TransactionRecord.payer_key == payer_key)

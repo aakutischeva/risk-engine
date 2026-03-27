@@ -1,8 +1,6 @@
 """API routes for fraud alert management."""
 
-from typing import Optional
-
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import http_not_found
@@ -24,8 +22,8 @@ router = APIRouter(prefix="/alerts", tags=["Alerts"])
     summary="List fraud alerts with optional filters",
 )
 async def list_alerts(
-    status_filter: Optional[AlertStatus] = Query(None, alias="status"),
-    risk_level: Optional[RiskLevel] = Query(None),
+    status_filter: AlertStatus | None = Query(None, alias="status"),
+    risk_level: RiskLevel | None = Query(None),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     session: AsyncSession = Depends(get_session),

@@ -13,8 +13,7 @@ no changes to routing, service or database layers.
 """
 
 import asyncio
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 import redis.asyncio as aioredis
 from loguru import logger
@@ -42,7 +41,7 @@ _THRESHOLDS: list[tuple[float, RiskLevel]] = [
     (80.0, RiskLevel.CRITICAL),
     (60.0, RiskLevel.HIGH),
     (30.0, RiskLevel.MEDIUM),
-    (0.0,  RiskLevel.LOW),
+    (0.0, RiskLevel.LOW),
 ]
 
 
@@ -78,8 +77,7 @@ def _weighted_average(results: list[RuleResult], rules: list[FraudRule]) -> floa
     if total_weight == 0:
         return 0.0
     weighted_sum = sum(
-        result.score * rule.weight
-        for result, rule in zip(results, rules)
+        result.score * rule.weight for result, rule in zip(results, rules, strict=False)
     )
     return round(weighted_sum / total_weight, 2)
 
@@ -96,14 +94,14 @@ class FraudEngine:
                 Defaults to :data:`DEFAULT_RULES`.
     """
 
-    def __init__(self, rules: Optional[list[FraudRule]] = None) -> None:
+    def __init__(self, rules: list[FraudRule] | None = None) -> None:
         self._rules: list[FraudRule] = rules if rules is not None else DEFAULT_RULES
 
     async def score(
         self,
         transaction: TransactionSubmit,
-        redis: Optional[aioredis.Redis] = None,
-        current_hour: Optional[int] = None,
+        redis: aioredis.Redis | None = None,
+        current_hour: int | None = None,
     ) -> RiskAssessment:
         """Evaluate all rules against a transaction and return a risk assessment.
 
@@ -115,14 +113,14 @@ class FraudEngine:
             transaction: Transaction payload to score.
             redis: Async Redis client for velocity-based rules. Can be None
                    when running in environments without Redis (e.g. CI tests).
-            current_hour: Hour of day (0–23) at evaluation time.  Defaults to
+            current_hour: Hour of day (0-23) at evaluation time. Defaults to
                           the actual current UTC hour when not provided.
 
         Returns:
             A fully populated :class:`RiskAssessment`.
         """
         if current_hour is None:
-            current_hour = datetime.now(timezone.utc).hour
+            current_hour = datetime.now(UTC).hour
 
         ctx = RuleContext(
             transaction=transaction,
@@ -152,7 +150,7 @@ class FraudEngine:
             fraud_score=composite_score,
             risk_level=risk_level,
             rules_evaluated=results,
-            scored_at=datetime.now(timezone.utc),
+            scored_at=datetime.now(UTC),
         )
 
     async def _safe_evaluate(self, rule: FraudRule, ctx: RuleContext) -> RuleResult:

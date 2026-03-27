@@ -5,8 +5,6 @@ repositories and the alert service together.  Routes delegate to this
 service; repositories and the engine have no knowledge of each other.
 """
 
-from typing import Optional
-
 import redis.asyncio as aioredis
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,9 +16,9 @@ from app.domain.schemas.transaction import (
     TransactionSubmit,
 )
 from app.fraud.engine import FraudEngine
+from app.infra.database.models import TransactionRecord
 from app.infra.database.repositories.alert_repository import AlertRepository
 from app.infra.database.repositories.transaction_repository import TransactionRepository
-from app.infra.database.models import TransactionRecord
 
 _engine = FraudEngine()
 
@@ -58,7 +56,7 @@ class TransactionService:
         redis: Optional async Redis client for velocity checks.
     """
 
-    def __init__(self, session: AsyncSession, redis: Optional[aioredis.Redis] = None) -> None:
+    def __init__(self, session: AsyncSession, redis: aioredis.Redis | None = None) -> None:
         self._session = session
         self._redis = redis
         self._tx_repo = TransactionRepository(session)
@@ -101,7 +99,7 @@ class TransactionService:
 
         return _record_to_response(record)
 
-    async def get_by_id(self, transaction_id: str) -> Optional[TransactionResponse]:
+    async def get_by_id(self, transaction_id: str) -> TransactionResponse | None:
         """Return a single transaction by ID, or None if it does not exist.
 
         Args:
@@ -117,8 +115,8 @@ class TransactionService:
 
     async def list_transactions(
         self,
-        risk_level: Optional[RiskLevel] = None,
-        payer_key: Optional[str] = None,
+        risk_level: RiskLevel | None = None,
+        payer_key: str | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> TransactionListResponse:

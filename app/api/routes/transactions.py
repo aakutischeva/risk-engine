@@ -1,12 +1,9 @@
 """API routes for transaction submission and retrieval."""
 
-from typing import Optional
-
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
-    TransactionNotFoundError,
     http_not_found,
 )
 from app.domain.enums import RiskLevel
@@ -85,8 +82,8 @@ async def get_transaction(
     summary="List processed transactions with optional filters",
 )
 async def list_transactions(
-    risk_level: Optional[RiskLevel] = Query(None, description="Filter by risk level."),
-    payer_key: Optional[str] = Query(None, description="Filter by payer key."),
+    risk_level: RiskLevel | None = Query(None, description="Filter by risk level."),
+    payer_key: str | None = Query(None, description="Filter by payer key."),
     limit: int = Query(50, ge=1, le=100, description="Page size."),
     offset: int = Query(0, ge=0, description="Number of records to skip."),
     session: AsyncSession = Depends(get_session),

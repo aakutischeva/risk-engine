@@ -32,6 +32,7 @@ def _make_ctx(transaction: TransactionSubmit, hour: int = 14) -> RuleContext:
 
 # ─── HighAmountRule ────────────────────────────────────────────────────────────
 
+
 class TestHighAmountRule:
     rule = HighAmountRule()
 
@@ -74,6 +75,7 @@ class TestHighAmountRule:
 
 # ─── NightTimeRule ────────────────────────────────────────────────────────────
 
+
 class TestNightTimeRule:
     rule = NightTimeRule()
 
@@ -113,6 +115,7 @@ class TestNightTimeRule:
 
 # ─── RoundAmountRule ──────────────────────────────────────────────────────────
 
+
 class TestRoundAmountRule:
     rule = RoundAmountRule()
 
@@ -150,6 +153,7 @@ class TestRoundAmountRule:
 
 
 # ─── SelfTransferRule ─────────────────────────────────────────────────────────
+
 
 class TestSelfTransferRule:
     rule = SelfTransferRule()

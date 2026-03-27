@@ -1,7 +1,5 @@
 """Service layer for fraud alert lifecycle management."""
 
-from typing import Optional
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.enums import AlertStatus, RiskLevel
@@ -33,7 +31,7 @@ class AlertService:
     def __init__(self, session: AsyncSession) -> None:
         self._repo = AlertRepository(session)
 
-    async def get_by_id(self, alert_id: str) -> Optional[AlertResponse]:
+    async def get_by_id(self, alert_id: str) -> AlertResponse | None:
         """Return a single alert by ID, or None if it does not exist.
 
         Args:
@@ -51,7 +49,7 @@ class AlertService:
         self,
         alert_id: str,
         request: AlertUpdateRequest,
-    ) -> Optional[AlertResponse]:
+    ) -> AlertResponse | None:
         """Transition an alert to a new lifecycle status.
 
         Args:
@@ -69,8 +67,8 @@ class AlertService:
 
     async def list_alerts(
         self,
-        status: Optional[AlertStatus] = None,
-        risk_level: Optional[RiskLevel] = None,
+        status: AlertStatus | None = None,
+        risk_level: RiskLevel | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> AlertListResponse:

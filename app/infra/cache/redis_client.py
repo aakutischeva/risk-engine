@@ -1,16 +1,14 @@
 """Async Redis client singleton for the Risk Engine."""
 
-from typing import Optional
-
 import redis.asyncio as aioredis
 from loguru import logger
 
 from app.core.config import settings
 
-_client: Optional[aioredis.Redis] = None
+_client: aioredis.Redis | None = None
 
 
-async def get_redis() -> Optional[aioredis.Redis]:
+async def get_redis() -> aioredis.Redis | None:
     """Return the shared async Redis client, creating it on first call.
 
     Returns None (and logs a warning) if the Redis connection cannot be

@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.domain.enums import AlertStatus, RiskLevel, TransactionType
+from app.domain.enums import AlertStatus, RiskLevel
 from app.domain.schemas.transaction import RuleResult, TransactionAssessment
 from app.main import app
 
@@ -20,7 +20,9 @@ _SAMPLE_ASSESSMENT = TransactionAssessment(
     fraud_score=15.0,
     risk_level=RiskLevel.LOW,
     rules_evaluated=[
-        RuleResult(rule="HighAmountRule", score=0.0, triggered=False, reason="Amount below threshold"),
+        RuleResult(
+            rule="HighAmountRule", score=0.0, triggered=False, reason="Amount below threshold"
+        ),
     ],
     alert_id=None,
     alert_status=None,

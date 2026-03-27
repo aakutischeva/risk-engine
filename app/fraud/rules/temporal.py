@@ -39,8 +39,8 @@ class NightTimeRule(FraudRule):
             triggered = True
             reason = (
                 f"High-value transaction (R$ {ctx.transaction.amount:,.2f}) "
-                f"submitted at hour {ctx.current_hour:02d}:xx — "
-                f"outside normal operating hours ({start:02d}h–{end:02d}h)."
+                f"submitted at hour {ctx.current_hour:02d}:xx - "
+                f"outside normal operating hours ({start:02d}h-{end:02d}h)."
             )
         elif is_nighttime:
             score = 10.0

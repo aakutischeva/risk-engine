@@ -1,0 +1,29 @@
+[project]
+name = "risk-engine"
+version = "1.0.0"
+description = "Real-time transaction risk scoring engine for fraud detection"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["B008"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/infra/database/migrations/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 80

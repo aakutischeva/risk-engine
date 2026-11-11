@@ -1,6 +1,6 @@
 """API routes for transaction submission and retrieval."""
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
@@ -55,6 +55,7 @@ async def submit_transaction(
 )
 async def get_transaction(
     transaction_id: str,
+    response: Response,
     session: AsyncSession = Depends(get_session),
 ) -> TransactionResponse:
     """Return a previously scored transaction.
@@ -69,10 +70,11 @@ async def get_transaction(
     Returns:
         The transaction resource.
     """
-    service = TransactionService(session=session)
+    service = TransactionService(session=session, redis=await get_redis())
     result = await service.get_by_id(transaction_id)
     if result is None:
         raise http_not_found(f"Transaction '{transaction_id}' not found.")
+    response.headers["X-Cache"] = "HIT" if getattr(service, "cache_hit", False) else "MISS"
     return result
 
 

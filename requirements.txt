@@ -10,6 +10,9 @@ alembic==1.14.0
 # Cache
 redis[hiredis]==5.2.1
 
+# RabbitMQ publisher
+aio-pika==9.6.2
+
 # Settings & validation
 pydantic==2.10.3
 pydantic-settings==2.6.1

@@ -35,6 +35,16 @@ class Settings(BaseSettings):
 
     # ── Redis ─────────────────────────────────────────────────────────────────
     REDIS_URL: str = "redis://localhost:6379/0"
+    TRANSACTION_CACHE_TTL_SECONDS: int = Field(default=120, ge=1, le=3600)
+
+    # ── RabbitMQ / Transactional Outbox ───────────────────────────────────────
+    RABBITMQ_HOST: str = "rabbitmq"
+    RABBITMQ_PORT: int = Field(default=5672, ge=1, le=65535)
+    RABBITMQ_VHOST: str = "risk_engine"
+    RABBITMQ_USER: str = ""
+    RABBITMQ_PASSWORD: str = ""
+    OUTBOX_BATCH_SIZE: int = Field(default=25, ge=1, le=100)
+    OUTBOX_POLL_INTERVAL_SECONDS: float = Field(default=2.0, gt=0)
 
     # ── Fraud Engine ──────────────────────────────────────────────────────────
     # Sliding-window velocity check: max transactions per payer in the window

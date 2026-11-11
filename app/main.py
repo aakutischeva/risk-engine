@@ -20,7 +20,7 @@ from app.core.exceptions import (
 )
 from app.core.logging import configure_logging
 from app.infra.cache.redis_client import close_redis, get_redis
-from app.infra.database.connection import init_db
+
 
 configure_logging()
 
@@ -36,7 +36,6 @@ async def lifespan(app: FastAPI):  # type: ignore[type-arg]
         app: The FastAPI application instance.
     """
     logger.info("Starting {} v{}", settings.APP_NAME, settings.APP_VERSION)
-    await init_db()
     await get_redis()
     logger.info("Startup complete — ready to score transactions.")
     yield

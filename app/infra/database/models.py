@@ -8,8 +8,10 @@ from sqlalchemy import (
     DateTime,
     Float,
     Index,
+    Integer,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase
 
@@ -67,3 +69,22 @@ class AlertRecord(Base):
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, nullable=False, default=_utcnow)
     resolved_at = Column(DateTime, nullable=True)
+
+class OutboxEvent(Base):
+    """Event written atomically with a transaction, awaiting RabbitMQ delivery."""
+
+    __tablename__ = "outbox_events"
+
+    event_id = Column(String(64), primary_key=True)
+    event_type = Column(String(100), nullable=False)
+    aggregate_id = Column(String(64), nullable=False)
+    payload = Column(JSON, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=_utcnow)
+    published_at = Column(DateTime, nullable=True)
+    attempts = Column(Integer, nullable=False, default=0)
+    last_error = Column(Text, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("event_type", "aggregate_id", name="uq_outbox_event_type_aggregate"),
+        Index("ix_outbox_pending", "published_at", "created_at"),
+    )

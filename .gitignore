@@ -47,3 +47,26 @@ alembic/versions/__pycache__/
 
 # Docker
 *.log
+
+# Local backups
+*.bak
+*.orig
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Logs
+*.log
+
+# Local development backups
+*.before_fw_stage*
+tests/integration/test_transactions_api_old.py

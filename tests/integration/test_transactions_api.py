@@ -1,43 +1,27 @@
-"""Integration tests for the /transactions API endpoints.
+"""API contract tests for transactions, without live PostgreSQL or Redis.
 
-Uses httpx.AsyncClient with the FastAPI app directly — no live database or
-Redis required; both are patched at the service boundary.
+The transaction service is mocked at the boundary. These tests exercise
+request validation, routing, and response serialization, not scoring rules.
 """
 
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.domain.enums import AlertStatus, RiskLevel
-from app.domain.schemas.transaction import RuleResult, TransactionAssessment
+from app.domain.enums import RiskLevel, TransactionType
+from app.domain.schemas.transaction import (
+    RiskAssessment,
+    RuleResult,
+    TransactionResponse,
+)
+from app.infra.database.connection import get_session
 from app.main import app
 
+
 _BASE = "/transactions"
-
-_SAMPLE_ASSESSMENT = TransactionAssessment(
-    transaction_id="api-test-001",
-    fraud_score=15.0,
-    risk_level=RiskLevel.LOW,
-    rules_evaluated=[
-        RuleResult(
-            rule="HighAmountRule", score=0.0, triggered=False, reason="Amount below threshold"
-        ),
-    ],
-    alert_id=None,
-    alert_status=None,
-)
-
-_HIGH_RISK_ASSESSMENT = TransactionAssessment(
-    transaction_id="api-test-002",
-    fraud_score=85.0,
-    risk_level=RiskLevel.CRITICAL,
-    rules_evaluated=[
-        RuleResult(rule="HighAmountRule", score=100.0, triggered=True, reason="Critical amount"),
-    ],
-    alert_id="alert-uuid-001",
-    alert_status=AlertStatus.OPEN,
-)
+_SENTINEL = object()
 
 _VALID_PAYLOAD = {
     "transaction_id": "api-test-001",
@@ -48,93 +32,165 @@ _VALID_PAYLOAD = {
 }
 
 
-@pytest.fixture
-async def client():
-    """Provide an async test client with lifespan events suppressed."""
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test",
-    ) as ac:
-        yield ac
+def _response(
+    *,
+    transaction_id: str = "api-test-001",
+    amount: float = 150.00,
+    fraud_score: float = 15.0,
+    risk_level: RiskLevel = RiskLevel.LOW,
+    triggered: bool = False,
+    idempotent: bool = False,
+) -> TransactionResponse:
+    now = datetime.now(timezone.utc)
+    return TransactionResponse(
+        transaction_id=transaction_id,
+        amount=amount,
+        payer_key="alice@bank.com",
+        receiver_key="bob@bank.com",
+        transaction_type=TransactionType.PIX,
+        risk_assessment=RiskAssessment(
+            fraud_score=fraud_score,
+            risk_level=risk_level,
+            rules_evaluated=[
+                RuleResult(
+                    rule="HighAmountRule",
+                    score=100.0 if triggered else 0.0,
+                    triggered=triggered,
+                    reason="Critical amount" if triggered else "Amount below threshold",
+                )
+            ],
+            scored_at=now,
+        ),
+        created_at=now,
+        idempotent=idempotent,
+    )
 
 
-class TestScoreEndpoint:
-    @pytest.mark.asyncio
-    async def test_valid_transaction_returns_200(self, client: AsyncClient):
+@pytest.fixture(autouse=True)
+def isolate_external_dependencies():
+    """Prevent requests from opening the real database or connecting to Redis."""
+
+    async def fake_session():
+        yield object()
+
+    old_override = app.dependency_overrides.get(get_session, _SENTINEL)
+    app.dependency_overrides[get_session] = fake_session
+    try:
         with patch(
-            "app.api.routes.transactions.TransactionService.score_transaction",
+            "app.api.routes.transactions.get_redis", new_callable=AsyncMock
+        ) as fake_redis:
+            fake_redis.return_value = AsyncMock()
+            yield
+    finally:
+        if old_override is _SENTINEL:
+            app.dependency_overrides.pop(get_session, None)
+        else:
+            app.dependency_overrides[get_session] = old_override
+
+
+async def _request(method: str, url: str, **kwargs):
+    """Send a request directly to FastAPI without starting its lifespan."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as client:
+        return await client.request(method, url, **kwargs)
+
+
+class TestSubmitTransactionEndpoint:
+    @pytest.mark.asyncio
+    async def test_valid_transaction_returns_200(self):
+        with patch(
+            "app.api.routes.transactions.TransactionService.submit",
             new_callable=AsyncMock,
-            return_value=_SAMPLE_ASSESSMENT,
-        ):
-            response = await client.post(_BASE, json=_VALID_PAYLOAD)
+            return_value=_response(),
+        ) as submit:
+            response = await _request("POST", _BASE, json=_VALID_PAYLOAD)
 
         assert response.status_code == 200
         body = response.json()
         assert body["transaction_id"] == "api-test-001"
-        assert body["fraud_score"] == 15.0
-        assert body["risk_level"] == "LOW"
+        assert body["risk_assessment"]["fraud_score"] == 15.0
+        assert body["risk_assessment"]["risk_level"] == "LOW"
+        assert body["idempotent"] is False
+        submit.assert_awaited_once()
 
     @pytest.mark.asyncio
-    async def test_high_risk_transaction_contains_alert_id(self, client: AsyncClient):
-        payload = {**_VALID_PAYLOAD, "transaction_id": "api-test-002", "amount": 30_000.00}
+    async def test_high_risk_transaction_contains_nested_assessment(self):
+        payload = {**_VALID_PAYLOAD, "transaction_id": "api-test-002", "amount": 30000.00}
         with patch(
-            "app.api.routes.transactions.TransactionService.score_transaction",
+            "app.api.routes.transactions.TransactionService.submit",
             new_callable=AsyncMock,
-            return_value=_HIGH_RISK_ASSESSMENT,
+            return_value=_response(
+                transaction_id="api-test-002",
+                amount=30000.00,
+                fraud_score=85.0,
+                risk_level=RiskLevel.CRITICAL,
+                triggered=True,
+            ),
         ):
-            response = await client.post(_BASE, json=payload)
+            response = await _request("POST", _BASE, json=payload)
 
         assert response.status_code == 200
-        body = response.json()
-        assert body["alert_id"] == "alert-uuid-001"
-        assert body["alert_status"] == "OPEN"
+        assessment = response.json()["risk_assessment"]
+        assert assessment["fraud_score"] == 85.0
+        assert assessment["risk_level"] == "CRITICAL"
+        assert assessment["rules_evaluated"][0]["triggered"] is True
 
     @pytest.mark.asyncio
-    async def test_missing_required_field_returns_422(self, client: AsyncClient):
+    async def test_missing_required_field_returns_422(self):
         incomplete = {k: v for k, v in _VALID_PAYLOAD.items() if k != "amount"}
-        response = await client.post(_BASE, json=incomplete)
+        response = await _request("POST", _BASE, json=incomplete)
         assert response.status_code == 422
 
     @pytest.mark.asyncio
-    async def test_negative_amount_returns_422(self, client: AsyncClient):
-        payload = {**_VALID_PAYLOAD, "amount": -1.00}
-        response = await client.post(_BASE, json=payload)
+    async def test_negative_amount_returns_422(self):
+        response = await _request(
+            "POST", _BASE, json={**_VALID_PAYLOAD, "amount": -1.00}
+        )
         assert response.status_code == 422
 
     @pytest.mark.asyncio
-    async def test_invalid_transaction_type_returns_422(self, client: AsyncClient):
-        payload = {**_VALID_PAYLOAD, "transaction_type": "WIRE"}
-        response = await client.post(_BASE, json=payload)
+    async def test_invalid_transaction_type_returns_422(self):
+        response = await _request(
+            "POST", _BASE, json={**_VALID_PAYLOAD, "transaction_type": "INVALID_TYPE_123"}
+        )
         assert response.status_code == 422
 
     @pytest.mark.asyncio
-    async def test_duplicate_transaction_returns_409(self, client: AsyncClient):
-        from app.core.exceptions import DuplicateTransactionError
-
+    async def test_repeated_transaction_can_return_idempotent_response(self):
+        """Test routing of a service-provided result, not the service's DB logic."""
+        first = _response(idempotent=False)
+        repeated = _response(idempotent=True)
         with patch(
-            "app.api.routes.transactions.TransactionService.score_transaction",
+            "app.api.routes.transactions.TransactionService.submit",
             new_callable=AsyncMock,
-            side_effect=DuplicateTransactionError("api-test-001"),
-        ):
-            response = await client.post(_BASE, json=_VALID_PAYLOAD)
+            side_effect=[first, repeated],
+        ) as submit:
+            response1 = await _request("POST", _BASE, json=_VALID_PAYLOAD)
+            response2 = await _request("POST", _BASE, json=_VALID_PAYLOAD)
 
-        assert response.status_code == 409
+        assert response1.status_code == 200
+        assert response1.json()["idempotent"] is False
+        assert response2.status_code == 200
+        assert response2.json()["idempotent"] is True
+        assert submit.await_count == 2
 
     @pytest.mark.asyncio
-    async def test_response_time_header_present(self, client: AsyncClient):
+    async def test_response_time_header_present(self):
         with patch(
-            "app.api.routes.transactions.TransactionService.score_transaction",
+            "app.api.routes.transactions.TransactionService.submit",
             new_callable=AsyncMock,
-            return_value=_SAMPLE_ASSESSMENT,
+            return_value=_response(),
         ):
-            response = await client.post(_BASE, json=_VALID_PAYLOAD)
+            response = await _request("POST", _BASE, json=_VALID_PAYLOAD)
 
+        assert response.status_code == 200
         assert "x-response-time" in response.headers
 
 
 class TestHealthEndpoint:
     @pytest.mark.asyncio
-    async def test_health_returns_ok(self, client: AsyncClient):
-        response = await client.get("/health")
+    async def test_health_returns_ok(self):
+        response = await _request("GET", "/health")
         assert response.status_code == 200
         assert response.json()["status"] == "ok"

@@ -5,10 +5,14 @@ repositories and the alert service together.  Routes delegate to this
 service; repositories and the engine have no knowledge of each other.
 """
 
+import uuid
+
 import redis.asyncio as aioredis
 from loguru import logger
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.domain.enums import RiskLevel
 from app.domain.schemas.transaction import (
     TransactionListResponse,
@@ -16,7 +20,12 @@ from app.domain.schemas.transaction import (
     TransactionSubmit,
 )
 from app.fraud.engine import FraudEngine
-from app.infra.database.models import TransactionRecord
+from app.infra.cache.transaction_cache import (
+    delete_cached_json,
+    get_cached_json,
+    set_cached_json,
+)
+from app.infra.database.models import OutboxEvent, TransactionRecord
 from app.infra.database.repositories.alert_repository import AlertRepository
 from app.infra.database.repositories.transaction_repository import TransactionRepository
 
@@ -61,6 +70,7 @@ class TransactionService:
         self._redis = redis
         self._tx_repo = TransactionRepository(session)
         self._alert_repo = AlertRepository(session)
+        self.cache_hit = False
 
     async def submit(self, payload: TransactionSubmit) -> TransactionResponse:
         """Score a transaction and persist the result.
@@ -97,6 +107,32 @@ class TransactionService:
                 assessment.fraud_score,
             )
 
+        # Saved in the same PostgreSQL transaction as the scored transaction.
+        # The separate publisher will send it only after commit.
+        self._session.add(
+            OutboxEvent(
+                event_id=str(uuid.uuid4()),
+                event_type="transaction.scored",
+                aggregate_id=payload.transaction_id,
+                payload={
+                    "schema_version": 1,
+                    "transaction_id": payload.transaction_id,
+                    "fraud_score": assessment.fraud_score,
+                    "risk_level": assessment.risk_level.value,
+                    "rules_triggered": [
+                        rule.rule for rule in assessment.rules_evaluated if rule.triggered
+                    ],
+                    "scored_at": assessment.scored_at.isoformat(),
+                },
+            )
+        )
+
+        # The dependency invalidates this key only after commit. The outbox
+        # event is part of the same PostgreSQL transaction as the record.
+        self._session.info.setdefault("transaction_cache_invalidate", set()).add(
+            payload.transaction_id
+        )
+
         return _record_to_response(record)
 
     async def get_by_id(self, transaction_id: str) -> TransactionResponse | None:
@@ -108,10 +144,31 @@ class TransactionService:
         Returns:
             The transaction response, or None.
         """
+        self.cache_hit = False
+        if self._redis is not None:
+            cached = await get_cached_json(self._redis, transaction_id)
+            if cached is not None:
+                try:
+                    result = TransactionResponse.model_validate_json(cached)
+                except (ValidationError, ValueError):
+                    logger.warning("Invalid cached transaction | id={}", transaction_id)
+                    await delete_cached_json(self._redis, transaction_id)
+                else:
+                    self.cache_hit = True
+                    return result
+
         record = await self._tx_repo.get_by_id(transaction_id)
         if record is None:
             return None
-        return _record_to_response(record)
+        result = _record_to_response(record)
+        if self._redis is not None:
+            await set_cached_json(
+                self._redis,
+                transaction_id,
+                result.model_dump_json(),
+                settings.TRANSACTION_CACHE_TTL_SECONDS,
+            )
+        return result
 
     async def list_transactions(
         self,

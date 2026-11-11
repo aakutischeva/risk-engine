@@ -3,6 +3,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import settings
+from app.infra.cache.transaction_cache import invalidate_after_commit
 from app.infra.database.models import Base
 
 _engine = create_async_engine(
@@ -45,6 +46,11 @@ async def get_session() -> AsyncSession:  # type: ignore[return]
         try:
             yield session
             await session.commit()
+            # Invalidate only after the PostgreSQL commit succeeds. A rollback
+            # must not evict a valid cache entry or expose uncommitted data.
+            await invalidate_after_commit(
+                session.info.pop("transaction_cache_invalidate", set())
+            )
         except Exception:
             await session.rollback()
             raise

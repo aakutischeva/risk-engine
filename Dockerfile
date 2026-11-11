@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1
 
 # ── Stage 1: dependency builder ───────────────────────────────────────────────
 FROM python:3.12-slim AS builder
@@ -8,7 +7,7 @@ WORKDIR /build
 RUN pip install --upgrade pip
 
 COPY requirements.txt .
-RUN pip install --no-deps --prefix=/install -r requirements.txt
+RUN pip install --prefix=/install -r requirements.txt
 
 
 # ── Stage 2: production runtime ───────────────────────────────────────────────
@@ -31,6 +30,8 @@ WORKDIR /app
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 COPY --chown=appuser:appgroup app/ ./app/
+COPY --chown=appuser:appgroup alembic/ ./alembic/
+COPY --chown=appuser:appgroup alembic.ini ./alembic.ini
 
 USER appuser
 

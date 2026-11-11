@@ -1,0 +1,7 @@
+aio-pika==9.6.2
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+pydantic==2.10.3
+loguru==0.7.3
+httpx==0.28.1

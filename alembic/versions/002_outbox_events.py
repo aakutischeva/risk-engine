@@ -26,13 +26,9 @@ def upgrade() -> None:
         sa.Column("attempts", sa.Integer(), nullable=False),
         sa.Column("last_error", sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint("event_id"),
-        sa.UniqueConstraint(
-            "event_type", "aggregate_id", name="uq_outbox_event_type_aggregate"
-        ),
+        sa.UniqueConstraint("event_type", "aggregate_id", name="uq_outbox_event_type_aggregate"),
     )
-    op.create_index(
-        "ix_outbox_pending", "outbox_events", ["published_at", "created_at"]
-    )
+    op.create_index("ix_outbox_pending", "outbox_events", ["published_at", "created_at"])
 
 
 def downgrade() -> None:

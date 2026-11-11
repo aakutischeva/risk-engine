@@ -48,9 +48,7 @@ async def get_session() -> AsyncSession:  # type: ignore[return]
             await session.commit()
             # Invalidate only after the PostgreSQL commit succeeds. A rollback
             # must not evict a valid cache entry or expose uncommitted data.
-            await invalidate_after_commit(
-                session.info.pop("transaction_cache_invalidate", set())
-            )
+            await invalidate_after_commit(session.info.pop("transaction_cache_invalidate", set()))
         except Exception:
             await session.rollback()
             raise

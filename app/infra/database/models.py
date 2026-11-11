@@ -70,6 +70,7 @@ class AlertRecord(Base):
     created_at = Column(DateTime, nullable=False, default=_utcnow)
     resolved_at = Column(DateTime, nullable=True)
 
+
 class OutboxEvent(Base):
     """Event written atomically with a transaction, awaiting RabbitMQ delivery."""
 

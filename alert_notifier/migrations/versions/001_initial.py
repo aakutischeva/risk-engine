@@ -24,9 +24,7 @@ def upgrade() -> None:
         sa.Column("processed_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("event_id"),
     )
-    op.create_index(
-        "ix_processed_events_transaction_id", "processed_events", ["transaction_id"]
-    )
+    op.create_index("ix_processed_events_transaction_id", "processed_events", ["transaction_id"])
 
     op.create_table(
         "alert_notifications",

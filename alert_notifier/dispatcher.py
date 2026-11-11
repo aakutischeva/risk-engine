@@ -75,9 +75,7 @@ async def dispatch_next(
         attempt = notification.attempts
         if error:
             notification.status = "RETRY"
-            notification.next_attempt_at = utc_now() + timedelta(
-                seconds=retry_delay(attempt)
-            )
+            notification.next_attempt_at = utc_now() + timedelta(seconds=retry_delay(attempt))
             notification.last_error = error
         else:
             notification.status = "SENT"

@@ -31,9 +31,7 @@ DEAD_EXCHANGE = "risk.events.dead"
 DEAD_QUEUE = "risk.alerts.dead"
 
 
-async def persist_event(
-    sessions: async_sessionmaker[AsyncSession], event: EventEnvelope
-) -> bool:
+async def persist_event(sessions: async_sessionmaker[AsyncSession], event: EventEnvelope) -> bool:
     """Commit a deduplication record and optionally a pending notification.
 
     Returns False if this event has already been processed. Database writes

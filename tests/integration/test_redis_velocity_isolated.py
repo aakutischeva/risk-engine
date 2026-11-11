@@ -59,9 +59,7 @@ async def redis_state():
         or parsed.password is not None
         or parsed.query
     ):
-        pytest.fail(
-            "Refusing unsafe TEST_REDIS_URL: use only redis://127.0.0.1:16379/0"
-        )
+        pytest.fail("Refusing unsafe TEST_REDIS_URL: use only redis://127.0.0.1:16379/0")
 
     client = redis_async.from_url(redis_url, decode_responses=True)
     payers: list[str] = []
@@ -178,9 +176,7 @@ async def test_fraud_engine_uses_real_redis_velocity_score(redis_state):
     engine = FraudEngine(rules=[VelocityRule()])
 
     for _ in range(critical):
-        assessment = await engine.score(
-            _transaction(payer), redis=client, current_hour=12
-        )
+        assessment = await engine.score(_transaction(payer), redis=client, current_hour=12)
 
     assert assessment.fraud_score == 100.0
     assert assessment.risk_level == RiskLevel.CRITICAL

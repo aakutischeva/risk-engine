@@ -75,9 +75,7 @@ def isolate_external_dependencies():
     old_override = app.dependency_overrides.get(get_session, _SENTINEL)
     app.dependency_overrides[get_session] = fake_session
     try:
-        with patch(
-            "app.api.routes.transactions.get_redis", new_callable=AsyncMock
-        ) as fake_redis:
+        with patch("app.api.routes.transactions.get_redis", new_callable=AsyncMock) as fake_redis:
             fake_redis.return_value = AsyncMock()
             yield
     finally:
@@ -89,9 +87,7 @@ def isolate_external_dependencies():
 
 async def _request(method: str, url: str, **kwargs):
     """Send a request directly to FastAPI without starting its lifespan."""
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         return await client.request(method, url, **kwargs)
 
 
@@ -143,9 +139,7 @@ class TestSubmitTransactionEndpoint:
 
     @pytest.mark.asyncio
     async def test_negative_amount_returns_422(self):
-        response = await _request(
-            "POST", _BASE, json={**_VALID_PAYLOAD, "amount": -1.00}
-        )
+        response = await _request("POST", _BASE, json={**_VALID_PAYLOAD, "amount": -1.00})
         assert response.status_code == 422
 
     @pytest.mark.asyncio

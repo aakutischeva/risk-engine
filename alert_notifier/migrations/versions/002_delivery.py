@@ -19,12 +19,8 @@ def upgrade() -> None:
         "alert_notifications",
         sa.Column("attempts", sa.Integer(), nullable=False, server_default="0"),
     )
-    op.add_column(
-        "alert_notifications", sa.Column("last_attempt_at", sa.DateTime(), nullable=True)
-    )
-    op.add_column(
-        "alert_notifications", sa.Column("next_attempt_at", sa.DateTime(), nullable=True)
-    )
+    op.add_column("alert_notifications", sa.Column("last_attempt_at", sa.DateTime(), nullable=True))
+    op.add_column("alert_notifications", sa.Column("next_attempt_at", sa.DateTime(), nullable=True))
     op.add_column("alert_notifications", sa.Column("sent_at", sa.DateTime(), nullable=True))
     op.add_column("alert_notifications", sa.Column("last_error", sa.Text(), nullable=True))
     op.create_index(

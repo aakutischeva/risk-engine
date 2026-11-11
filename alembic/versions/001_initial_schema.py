@@ -33,13 +33,9 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("transaction_id"),
     )
-    op.create_index(
-        "ix_transactions_payer_created", "transactions", ["payer_key", "created_at"]
-    )
+    op.create_index("ix_transactions_payer_created", "transactions", ["payer_key", "created_at"])
     op.create_index("ix_transactions_payer_key", "transactions", ["payer_key"])
-    op.create_index(
-        "ix_transactions_risk_created", "transactions", ["risk_level", "created_at"]
-    )
+    op.create_index("ix_transactions_risk_created", "transactions", ["risk_level", "created_at"])
     op.create_index("ix_transactions_risk_level", "transactions", ["risk_level"])
     op.create_index("ix_transactions_transaction_id", "transactions", ["transaction_id"])
 

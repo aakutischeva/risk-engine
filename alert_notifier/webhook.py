@@ -17,9 +17,7 @@ def encode_notification(notification: AlertNotification) -> bytes:
         "fraud_score": notification.fraud_score,
         "rules_triggered": notification.rules_triggered,
     }
-    return json.dumps(
-        body, separators=(",", ":"), sort_keys=True, allow_nan=False
-    ).encode("utf-8")
+    return json.dumps(body, separators=(",", ":"), sort_keys=True, allow_nan=False).encode("utf-8")
 
 
 def sign_payload(body: bytes, secret: str) -> str:

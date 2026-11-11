@@ -24,9 +24,7 @@ async def get_cached_json(redis: aioredis.Redis, transaction_id: str) -> str | N
         return None
 
 
-async def set_cached_json(
-    redis: aioredis.Redis, transaction_id: str, value: str, ttl: int
-) -> None:
+async def set_cached_json(redis: aioredis.Redis, transaction_id: str, value: str, ttl: int) -> None:
     try:
         await redis.set(cache_key(transaction_id), value, ex=ttl)
     except Exception as exc:

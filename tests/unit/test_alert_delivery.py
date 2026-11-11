@@ -50,12 +50,9 @@ class FakeSession:
         return self
 
     async def execute(self, _query):
-        due = (
-            self.notification.status in ("PENDING", "RETRY")
-            and (
-                self.notification.next_attempt_at is None
-                or self.notification.next_attempt_at <= utc_now()
-            )
+        due = self.notification.status in ("PENDING", "RETRY") and (
+            self.notification.next_attempt_at is None
+            or self.notification.next_attempt_at <= utc_now()
         )
         return FakeResult(self.notification if due else None)
 

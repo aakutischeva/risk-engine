@@ -37,54 +37,53 @@ async def dispatch_next(
     PostgreSQL row locks. Errors in PostgreSQL propagate to the outer loop.
     """
     now = utc_now()
-    async with sessions() as session:
-        async with session.begin():
-            result = await session.execute(
-                select(AlertNotification)
-                .where(
-                    AlertNotification.status.in_(("PENDING", "RETRY")),
-                    or_(
-                        AlertNotification.next_attempt_at.is_(None),
-                        AlertNotification.next_attempt_at <= now,
-                    ),
-                )
-                .order_by(AlertNotification.created_at)
-                .limit(1)
-                .with_for_update(skip_locked=True)
+    async with sessions() as session, session.begin():
+        result = await session.execute(
+            select(AlertNotification)
+            .where(
+                AlertNotification.status.in_(("PENDING", "RETRY")),
+                or_(
+                    AlertNotification.next_attempt_at.is_(None),
+                    AlertNotification.next_attempt_at <= now,
+                ),
             )
-            notification = result.scalar_one_or_none()
-            if notification is None:
-                return False
+            .order_by(AlertNotification.created_at)
+            .limit(1)
+            .with_for_update(skip_locked=True)
+        )
+        notification = result.scalar_one_or_none()
+        if notification is None:
+            return False
 
-            notification.attempts = int(notification.attempts or 0) + 1
-            notification.last_attempt_at = now
-            body = encode_notification(notification)
-            headers = {
-                "Content-Type": "application/json",
-                "X-Risk-Signature": sign_payload(body, secret),
-                "X-Event-ID": notification.event_id,
-            }
-            error = ""
-            try:
-                response = await client.post(webhook_url, content=body, headers=headers)
-                if response.status_code < 200 or response.status_code >= 300:
-                    error = f"HTTP {response.status_code}"
-            except httpx.RequestError as exc:
-                error = type(exc).__name__
+        notification.attempts = int(notification.attempts or 0) + 1
+        notification.last_attempt_at = now
+        body = encode_notification(notification)
+        headers = {
+            "Content-Type": "application/json",
+            "X-Risk-Signature": sign_payload(body, secret),
+            "X-Event-ID": notification.event_id,
+        }
+        error = ""
+        try:
+            response = await client.post(webhook_url, content=body, headers=headers)
+            if response.status_code < 200 or response.status_code >= 300:
+                error = f"HTTP {response.status_code}"
+        except httpx.RequestError as exc:
+            error = type(exc).__name__
 
-            transaction_id = notification.transaction_id
-            attempt = notification.attempts
-            if error:
-                notification.status = "RETRY"
-                notification.next_attempt_at = utc_now() + timedelta(
-                    seconds=retry_delay(attempt)
-                )
-                notification.last_error = error
-            else:
-                notification.status = "SENT"
-                notification.sent_at = utc_now()
-                notification.next_attempt_at = None
-                notification.last_error = None
+        transaction_id = notification.transaction_id
+        attempt = notification.attempts
+        if error:
+            notification.status = "RETRY"
+            notification.next_attempt_at = utc_now() + timedelta(
+                seconds=retry_delay(attempt)
+            )
+            notification.last_error = error
+        else:
+            notification.status = "SENT"
+            notification.sent_at = utc_now()
+            notification.next_attempt_at = None
+            notification.last_error = None
 
     # Only log success after the database transaction has committed.
     if error:

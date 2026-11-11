@@ -4,7 +4,7 @@ The transaction service is mocked at the boundary. These tests exercise
 request validation, routing, and response serialization, not scoring rules.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -18,7 +18,6 @@ from app.domain.schemas.transaction import (
 )
 from app.infra.database.connection import get_session
 from app.main import app
-
 
 _BASE = "/transactions"
 _SENTINEL = object()
@@ -41,7 +40,7 @@ def _response(
     triggered: bool = False,
     idempotent: bool = False,
 ) -> TransactionResponse:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return TransactionResponse(
         transaction_id=transaction_id,
         amount=amount,

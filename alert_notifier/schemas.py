@@ -6,7 +6,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
-
 RiskLevelValue = Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
 
 

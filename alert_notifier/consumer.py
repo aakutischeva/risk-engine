@@ -24,7 +24,6 @@ from alert_notifier.database import database_url
 from alert_notifier.models import AlertNotification, ProcessedEvent
 from alert_notifier.schemas import EventEnvelope
 
-
 EVENT_EXCHANGE = "risk.events"
 ALERT_QUEUE = "risk.alerts"
 TRANSACTION_ROUTING_KEY = "transaction.scored"
@@ -41,32 +40,31 @@ async def persist_event(
     are atomic; failure raises and the RabbitMQ message must be requeued.
     """
     event_id = str(event.event_id)
-    async with sessions() as session:
-        async with session.begin():
-            if await session.get(ProcessedEvent, event_id) is not None:
-                return False
+    async with sessions() as session, session.begin():
+        if await session.get(ProcessedEvent, event_id) is not None:
+            return False
 
+        session.add(
+            ProcessedEvent(
+                event_id=event_id,
+                event_type=event.event_type,
+                transaction_id=event.payload.transaction_id,
+                risk_level=event.payload.risk_level,
+            )
+        )
+        # Ensure the parent row exists before inserting the FK child.
+        await session.flush()
+        if event.requires_notification:
             session.add(
-                ProcessedEvent(
+                AlertNotification(
                     event_id=event_id,
-                    event_type=event.event_type,
                     transaction_id=event.payload.transaction_id,
                     risk_level=event.payload.risk_level,
+                    fraud_score=event.payload.fraud_score,
+                    rules_triggered=event.payload.rules_triggered,
+                    status="PENDING",
                 )
             )
-            # Ensure the parent row exists before inserting the FK child.
-            await session.flush()
-            if event.requires_notification:
-                session.add(
-                    AlertNotification(
-                        event_id=event_id,
-                        transaction_id=event.payload.transaction_id,
-                        risk_level=event.payload.risk_level,
-                        fraud_score=event.payload.fraud_score,
-                        rules_triggered=event.payload.rules_triggered,
-                        status="PENDING",
-                    )
-                )
     return True
 
 

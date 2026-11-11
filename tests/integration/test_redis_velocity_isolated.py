@@ -20,7 +20,6 @@ from app.fraud.engine import FraudEngine
 from app.fraud.rules.base import RuleContext
 from app.fraud.rules.velocity import VelocityRule
 
-
 _PREFIX = "risk_engine:velocity:"
 
 

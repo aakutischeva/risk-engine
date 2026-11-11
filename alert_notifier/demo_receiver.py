@@ -73,13 +73,13 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def do_GET(self) -> None:  # noqa: N802
+    def do_GET(self) -> None:
         if self.path == "/health":
             self._json(HTTPStatus.OK, "ok")
         else:
             self._json(HTTPStatus.NOT_FOUND, "not_found")
 
-    def do_POST(self) -> None:  # noqa: N802
+    def do_POST(self) -> None:
         if self.path != "/webhook":
             self._json(HTTPStatus.NOT_FOUND, "not_found")
             return

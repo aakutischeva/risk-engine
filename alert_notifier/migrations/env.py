@@ -3,13 +3,12 @@
 import asyncio
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
+from alembic import context
 from alert_notifier.database import database_url
 from alert_notifier.models import Base
-
 
 config = context.config
 if config.config_file_name is not None:

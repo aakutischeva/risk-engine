@@ -5,8 +5,8 @@ Revises: alert001
 """
 
 import sqlalchemy as sa
-from alembic import op
 
+from alembic import op
 
 revision = "alert002"
 down_revision = "alert001"

@@ -9,7 +9,6 @@ from loguru import logger
 
 from app.infra.cache.redis_client import get_redis
 
-
 KEY_PREFIX = "transaction:detail:v1:"
 
 

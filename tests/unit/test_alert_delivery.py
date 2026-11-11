@@ -12,7 +12,6 @@ from alert_notifier.dispatcher import dispatch_next, retry_delay
 from alert_notifier.models import AlertNotification, utc_now
 from alert_notifier.webhook import encode_notification, sign_payload, verify_signature
 
-
 SECRET = "test-only-" + "X" * 48
 
 

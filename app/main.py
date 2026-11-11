@@ -21,7 +21,6 @@ from app.core.exceptions import (
 from app.core.logging import configure_logging
 from app.infra.cache.redis_client import close_redis, get_redis
 
-
 configure_logging()
 
 

@@ -20,7 +20,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.core.config import settings
 from app.infra.database.models import OutboxEvent
 
-
 EXCHANGE_NAME = "risk.events"
 ALERT_QUEUE_NAME = "risk.alerts"
 TRANSACTION_ROUTING_KEY = "transaction.scored"
@@ -72,36 +71,35 @@ async def publish_pending_batch(
     duplicate, so consumer-side idempotency is required.
     """
     delivered = 0
-    async with session_factory() as session:
-        async with session.begin():
-            statement = (
-                select(OutboxEvent)
-                .where(OutboxEvent.published_at.is_(None))
-                .order_by(OutboxEvent.created_at, OutboxEvent.event_id)
-                .limit(batch_size)
-                .with_for_update(skip_locked=True)
-            )
-            events = (await session.scalars(statement)).all()
-            for event in events:
-                try:
-                    await publish_event(exchange, event)
-                except Exception as exc:
-                    event.attempts += 1
-                    # Avoid persisting connection strings or broker credentials.
-                    event.last_error = type(exc).__name__
-                    logger.warning(
-                        "Outbox publish failed | id={} attempt={} error={}",
-                        event.event_id,
-                        event.attempts,
-                        type(exc).__name__,
-                    )
-                else:
-                    event.attempts += 1
-                    # DB DateTime column uses UTC without a timezone suffix.
-                    event.published_at = datetime.now(UTC).replace(tzinfo=None)
-                    event.last_error = None
-                    delivered += 1
-                    logger.info("Outbox published | id={}", event.event_id)
+    async with session_factory() as session, session.begin():
+        statement = (
+            select(OutboxEvent)
+            .where(OutboxEvent.published_at.is_(None))
+            .order_by(OutboxEvent.created_at, OutboxEvent.event_id)
+            .limit(batch_size)
+            .with_for_update(skip_locked=True)
+        )
+        events = (await session.scalars(statement)).all()
+        for event in events:
+            try:
+                await publish_event(exchange, event)
+            except Exception as exc:
+                event.attempts += 1
+                # Avoid persisting connection strings or broker credentials.
+                event.last_error = type(exc).__name__
+                logger.warning(
+                    "Outbox publish failed | id={} attempt={} error={}",
+                    event.event_id,
+                    event.attempts,
+                    type(exc).__name__,
+                )
+            else:
+                event.attempts += 1
+                # DB DateTime column uses UTC without a timezone suffix.
+                event.published_at = datetime.now(UTC).replace(tzinfo=None)
+                event.last_error = None
+                delivered += 1
+                logger.info("Outbox published | id={}", event.event_id)
     return delivered
 
 

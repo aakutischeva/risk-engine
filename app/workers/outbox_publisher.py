@@ -131,7 +131,11 @@ async def run_publisher() -> None:
                     )
                     # Pre-declare a durable queue so messages do not disappear
                     # before the dedicated Alert Service is deployed.
-                    queue = await channel.declare_queue(ALERT_QUEUE_NAME, durable=True)
+                    queue = await channel.declare_queue(
+                        ALERT_QUEUE_NAME,
+                        durable=True,
+                        arguments={"x-queue-type": "quorum"},
+                    )
                     await queue.bind(exchange, routing_key=TRANSACTION_ROUTING_KEY)
                     logger.info(
                         "Outbox publisher ready | exchange={} queue={}",

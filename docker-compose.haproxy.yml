@@ -1,0 +1,15 @@
+services:
+  pg-haproxy:
+    image: haproxy:3.2.26-alpine
+    container_name: risk-engine-pg-haproxy
+
+    profiles:
+      - ha
+
+    restart: unless-stopped
+
+    networks:
+      - tx_db
+
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro

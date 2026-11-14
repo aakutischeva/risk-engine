@@ -1,0 +1,43 @@
+scope: risk-engine-ha
+namespace: /service/
+name: pg-primary
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: postgres:8008
+
+etcd3:
+  host: etcd:2379
+
+bootstrap:
+  dcs:
+    ttl: 30
+    loop_wait: 10
+    retry_timeout: 10
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        wal_level: replica
+        max_wal_senders: 10
+        max_replication_slots: 10
+        wal_log_hints: "on"
+    slots:
+      risk_standby_1:
+        type: physical
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: postgres:5432
+  data_dir: /var/lib/postgresql/data
+  bin_dir: /usr/local/bin
+  pgpass: /tmp/patroni.pgpass
+
+  authentication:
+    superuser:
+      username: riskengine
+    replication:
+      username: risk_replicator
+
+  parameters:
+    wal_log_hints: "on"

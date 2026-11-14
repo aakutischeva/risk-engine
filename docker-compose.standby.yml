@@ -1,0 +1,32 @@
+
+services:
+  postgres-standby:
+    image: postgres:16-alpine
+    container_name: risk-engine-postgres-standby
+
+    profiles:
+      - ha
+
+    restart: unless-stopped
+
+    networks:
+      - tx_db
+
+    environment:
+      PGPASSFILE: /var/lib/postgresql/data/.pgpass
+
+    command: ["postgres", "-c", "primary_slot_name=risk_standby_1", "-c", "wal_log_hints=on"]
+    volumes:
+      - postgres_standby_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -h 127.0.0.1 -p 5432
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_standby_data:
+

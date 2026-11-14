@@ -156,13 +156,21 @@ async def run_consumer() -> None:
                     exchange = await channel.declare_exchange(
                         EVENT_EXCHANGE, ExchangeType.TOPIC, durable=True
                     )
-                    queue = await channel.declare_queue(ALERT_QUEUE, durable=True)
+                    queue = await channel.declare_queue(
+                        ALERT_QUEUE,
+                        durable=True,
+                        arguments={"x-queue-type": "quorum"},
+                    )
                     await queue.bind(exchange, routing_key=TRANSACTION_ROUTING_KEY)
 
                     dead_exchange = await channel.declare_exchange(
                         DEAD_EXCHANGE, ExchangeType.DIRECT, durable=True
                     )
-                    dead_queue = await channel.declare_queue(DEAD_QUEUE, durable=True)
+                    dead_queue = await channel.declare_queue(
+                        DEAD_QUEUE,
+                        durable=True,
+                        arguments={"x-queue-type": "quorum"},
+                    )
                     await dead_queue.bind(dead_exchange, routing_key=DEAD_QUEUE)
 
                     logger.info("Alert notifier ready | queue={}", ALERT_QUEUE)

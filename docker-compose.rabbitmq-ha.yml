@@ -1,0 +1,50 @@
+services:
+  rabbitmq-2:
+    image: rabbitmq:4-management-alpine
+    container_name: risk-engine-rabbitmq-2
+    hostname: rabbitmq-2
+    profiles:
+      - ha
+    restart: unless-stopped
+
+    environment:
+      RABBITMQ_NODENAME: rabbit@rabbitmq-2
+
+    networks:
+      - events
+
+    volumes:
+      - rabbitmq2_data:/var/lib/rabbitmq
+
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq-3:
+    image: rabbitmq:4-management-alpine
+    container_name: risk-engine-rabbitmq-3
+    hostname: rabbitmq-3
+    profiles:
+      - ha
+    restart: unless-stopped
+
+    environment:
+      RABBITMQ_NODENAME: rabbit@rabbitmq-3
+
+    networks:
+      - events
+
+    volumes:
+      - rabbitmq3_data:/var/lib/rabbitmq
+
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  rabbitmq2_data:
+  rabbitmq3_data:

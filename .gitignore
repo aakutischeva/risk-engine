@@ -70,3 +70,5 @@ __pycache__/
 # Local development backups
 *.before_fw_stage*
 tests/integration/test_transactions_api_old.py
+backups/
+.secrets/

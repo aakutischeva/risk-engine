@@ -1,0 +1,11 @@
+FROM postgres:16-alpine
+
+RUN apk add --no-cache \
+      python3 \
+      py3-pip \
+      py3-virtualenv \
+    && python3 -m virtualenv /opt/patroni \
+    && /opt/patroni/bin/pip install --no-cache-dir \
+      'patroni[etcd3,psycopg3]==4.1.5'
+
+ENV PATH="/opt/patroni/bin:${PATH}"

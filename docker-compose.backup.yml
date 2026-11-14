@@ -1,0 +1,41 @@
+
+x-backup-common: &backup-common
+  image: postgres:16-alpine
+  profiles: [backup]
+  restart: unless-stopped
+
+  entrypoint:
+    - /bin/sh
+    - /opt/backup/start_backup.sh
+
+  tmpfs:
+    - /run:mode=0700
+
+  volumes:
+    - ./scripts/start_backup.sh:/opt/backup/start_backup.sh:ro
+    - ./scripts/backup.sh:/opt/backup/backup.sh:ro
+    - ./backups:/backups
+    - /etc/localtime:/etc/localtime:ro
+
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  backup-postgres:
+    <<: *backup-common
+    network_mode: "service:postgres"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ./backups/.pg-main.env
+
+  backup-alert-postgres:
+    <<: *backup-common
+    network_mode: "service:alert-postgres"
+    depends_on:
+      alert-postgres:
+        condition: service_healthy
+    env_file:
+      - ./backups/.pg-alert.env
+

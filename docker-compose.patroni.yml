@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: risk-engine-patroni:4.1.5
+
+    entrypoint:
+      - /bin/sh
+      - /opt/patroni/start_patroni.sh
+    command: []
+
+    networks:
+      - tx_db
+      - ha_control
+
+    volumes:
+      - ./patroni/primary.yml:/etc/patroni/patroni.yml:ro
+      - ./scripts/start_patroni.sh:/opt/patroni/start_patroni.sh:ro
+      - ./.secrets/patroni_superuser_password:/run/secrets/patroni_superuser_password:ro
+      - ./.secrets/pg_replicator_password:/run/secrets/pg_replicator_password:ro
+
+  postgres-standby:
+    image: risk-engine-patroni:4.1.5
+
+    entrypoint:
+      - /bin/sh
+      - /opt/patroni/start_patroni.sh
+    command: []
+
+    networks:
+      - tx_db
+      - ha_control
+
+    volumes:
+      - ./patroni/standby.yml:/etc/patroni/patroni.yml:ro
+      - ./scripts/start_patroni.sh:/opt/patroni/start_patroni.sh:ro
+      - ./.secrets/patroni_superuser_password:/run/secrets/patroni_superuser_password:ro
+      - ./.secrets/pg_replicator_password:/run/secrets/pg_replicator_password:ro

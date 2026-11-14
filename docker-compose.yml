@@ -6,7 +6,7 @@ services:
     container_name: risk-engine-api
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pg-haproxy:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
     networks:
       - tx_db
@@ -33,7 +33,7 @@ services:
       target: production
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pg-haproxy:5432/${POSTGRES_DB}
     command: ["alembic", "upgrade", "head"]
     networks:
       - tx_db
@@ -102,8 +102,8 @@ services:
       target: production
     container_name: risk-engine-outbox-publisher
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      RABBITMQ_HOST: rabbitmq
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pg-haproxy:5432/${POSTGRES_DB}
+      RABBITMQ_HOST: rabbitmq-haproxy
       RABBITMQ_PORT: "5672"
       RABBITMQ_VHOST: risk_engine
       RABBITMQ_USER: ${RABBITMQ_USER:?RABBITMQ_USER is required}
@@ -170,7 +170,7 @@ services:
       ALERT_DB_USER: ${ALERT_POSTGRES_USER:?ALERT_POSTGRES_USER is required}
       ALERT_DB_PASSWORD: ${ALERT_POSTGRES_PASSWORD:?ALERT_POSTGRES_PASSWORD is required}
       ALERT_DB_NAME: ${ALERT_POSTGRES_DB:?ALERT_POSTGRES_DB is required}
-      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_HOST: rabbitmq-haproxy
       RABBITMQ_PORT: "5672"
       RABBITMQ_VHOST: risk_engine
       RABBITMQ_USER: ${RABBITMQ_USER:?RABBITMQ_USER is required}
